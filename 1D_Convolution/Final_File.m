@@ -1,7 +1,7 @@
 clear all; clc; close all;
 rand('state',20)
 
-mesh_array = [1000];
+mesh_array = [50000];
 for n = 1:numel(mesh_array)
     N = mesh_array(n);
     N_ITER_array= [1 10];    % number of iterations 1/10/100
