@@ -4,7 +4,7 @@ global N P measang
 noise_level = 0.01;
 
 % List of mesh point
-mesh_array = [64 128 256 512];
+mesh_array = [256];
 para_proper = [1e4];
 % MESH      64  80  128
 % par       1e4 1e5 1e5
