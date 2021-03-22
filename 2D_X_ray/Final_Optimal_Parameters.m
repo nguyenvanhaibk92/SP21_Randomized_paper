@@ -4,7 +4,7 @@ global N P measang
 noise_level = 0.01;
 
 % List of mesh point
-mesh_points = [10];
+mesh_points = [64];
 
 % List of regularization parameters
 parameters = logspace(-4,10,100);
@@ -81,7 +81,7 @@ global N P measang
 noise_level = 0.01;
 
 % List of mesh point
-mesh_points = [20];
+mesh_points = [128];
 
 % List of regularization parameters
 parameters = logspace(-4,10,100);
