@@ -2,12 +2,12 @@ clear all; clc; close all;
 
 rand('state', 20)
 
-mesh_array = [50000];
+mesh_array = [200];
 
 for n = 1:numel(mesh_array)
     N = mesh_array(n);
     N_ITER_array = [1 10]; % number of iterations 1/10/100
-    r_array = [N/10 N/5 N/2]; % 10 / 20 / 50 percent of mesh size
+    r_array = [N / 10 N / 5 N / 2]; % 10 / 20 / 50 percent of mesh size
 
     % --------- Initial parameters for the N mesh size -----------------------
     noise_level = 0.05;
@@ -26,10 +26,10 @@ for n = 1:numel(mesh_array)
 
     for iter = 1:length(N_ITER_array)
         N_ITER = N_ITER_array(iter);
-        C = 1 / Regularization * eye(SIZE_A(2));
-        C_INV = Regularization * eye(SIZE_A(2));
-        SIGMA = (Data_var) * eye(SIZE_A(1));
-        SIGMA_INV = 1 / Data_var * eye(SIZE_A(1));
+        C = 1 / Regularization;% * eye(SIZE_A(2));
+        C_INV = Regularization;% * eye(SIZE_A(2));
+        SIGMA = (Data_var);% * eye(SIZE_A(1));
+        SIGMA_INV = 1 / Data_var;% * eye(SIZE_A(1));
 
         for i = 1:length(r_array)
             r = r_array(i);
@@ -40,42 +40,58 @@ for n = 1:numel(mesh_array)
 
             for j = 1:N_ITER
                 %% Using rank one product
-                EPSILON = normrnd(0, sqrt(1 / Regularization), [SIZE_A(2), r]);
-                LAMBDA = normrnd(0, sqrt(1 / Data_var), [size(y_obs(:), 1), r]);
-                sig_rand = normrnd(0, sqrt(Data_var), [size(y_obs(:), 1), r]);
+%                 EPSILON = normrnd(0, sqrt(1 / Regularization), [SIZE_A(2), r]);
+%                 LAMBDA = normrnd(0, sqrt(1 / Data_var), [size(y_obs(:), 1), r]);
+%                 sig_rand = normrnd(0, sqrt(Data_var), [size(y_obs(:), 1), r]);
 
                 %% =================== LEFT SKETCHING =====================
-                SIGMA_INV_rand = 1 / r * LAMBDA * LAMBDA';
+                result_LEFT_in_r = zeros(N, 1);
+                SIG_INV = zeros([size(y_obs(:), 1), 1]);
+                for k = 1:r
+                    lambda = normrnd(0, sqrt(1 / Data_var), [size(y_obs(:), 1), 1]);
+%                     lambda = 1 / sqrt(Data_var) * ones([size(y_obs(:), 1), 1]);
+                    SIG_INV = SIG_INV + 1/r * (lambda * lambda');
+                end
                 % Solve the minimization problem using conjugate gradient method.
-                RHS = A' * (SIGMA_INV_rand * y_obs(:)); % Construct right hand side
+                RHS = A' * SIG_INV * y_obs(:); % Construct right hand side
                 x_0 = zeros(size(RHS));
-                matvecc = @(x) A' * (SIGMA_INV_rand * (A * x)) + C_INV * x;
+                matvecc = @(x) A' * SIG_INV * (A * x) + C_INV * x;
                 max_iters = 500; tol = 1e-5;
-                result_LEFT_in_ITER = result_LEFT_in_ITER + 1 / N_ITER * ...
+                result_LEFT_in_r = result_LEFT_in_r + ...
                     CG(matvecc, RHS, x_0, max_iters, tol, false);
+                
+                result_LEFT_in_ITER = result_LEFT_in_ITER + 1 / N_ITER * result_LEFT_in_r;
+%                 SIGMA_INV_rand = 1 / r * LAMBDA * LAMBDA';
+%                 % Solve the minimization problem using conjugate gradient method.
+%                 RHS = A' * (SIGMA_INV_rand * y_obs(:)); % Construct right hand side
+%                 x_0 = zeros(size(RHS));
+%                 matvecc = @(x) A' * (SIGMA_INV_rand * (A * x)) + C_INV * x;
+%                 max_iters = 500; tol = 1e-5;
+%                 result_LEFT_in_ITER = result_LEFT_in_ITER + 1 / N_ITER * ...
+%                     CG(matvecc, RHS, x_0, max_iters, tol, false);
 
-                %% ============= RANDOMIZED MAP solution ==================
-                % Solve the minimization problem using conjugate gradient method.
-                RHS = A' * (SIGMA_INV(1, 1) * (y_obs(:) + mean(sig_rand, 2))) + C_INV(1, 1) * mean(EPSILON, 2);
-                x_0 = zeros(size(RHS));
-                matvecc = @(x) A' * (SIGMA_INV(1, 1) * (A * x)) + C_INV(1, 1) * x;
-                max_iters = 500; tol = 1e-5;
-                result_RAN_MAP_in_ITER = result_RAN_MAP_in_ITER + 1 / N_ITER * ...
-                    CG(matvecc, RHS, x_0, max_iters, tol, false);
-
-                %% ============ RIGHT SKETCHING ===========================
-                C_RAND = 1 / r * EPSILON * EPSILON';
-                % (1) using CG for solvong Y = (SIGMA + A C A')^{-1} d
-                % => (2) Then u_RS  = C A' Y
-                % (1) -----------------------------------------------------
-                RHS = y_obs(:);
-                x_0 = zeros(size(RHS));
-                matvecc = @(x) SIGMA(1, 1) * x + A * (C_RAND * (A' * x));
-                max_iters = 500; tol = 1e-5;
-                Y = CG(matvecc, RHS, x_0, max_iters, tol, false);
-                % (2) -----------------------------------------------------
-                u_RS = C_RAND * (A' * (Y));
-                result_RIGHT_in_ITER = result_RIGHT_in_ITER + 1 / N_ITER * u_RS;
+%                 %% ============= RANDOMIZED MAP solution ==================
+%                 % Solve the minimization problem using conjugate gradient method.
+%                 RHS = A' * (SIGMA_INV(1, 1) * (y_obs(:) + mean(sig_rand, 2))) + C_INV(1, 1) * mean(EPSILON, 2);
+%                 x_0 = zeros(size(RHS));
+%                 matvecc = @(x) A' * (SIGMA_INV(1, 1) * (A * x)) + C_INV(1, 1) * x;
+%                 max_iters = 500; tol = 1e-5;
+%                 result_RAN_MAP_in_ITER = result_RAN_MAP_in_ITER + 1 / N_ITER * ...
+%                     CG(matvecc, RHS, x_0, max_iters, tol, false);
+% 
+%                 %% ============ RIGHT SKETCHING ===========================
+%                 C_RAND = 1 / r * EPSILON * EPSILON';
+%                 % (1) using CG for solvong Y = (SIGMA + A C A')^{-1} d
+%                 % => (2) Then u_RS  = C A' Y
+%                 % (1) -----------------------------------------------------
+%                 RHS = y_obs(:);
+%                 x_0 = zeros(size(RHS));
+%                 matvecc = @(x) SIGMA(1, 1) * x + A * (C_RAND * (A' * x));
+%                 max_iters = 500; tol = 1e-5;
+%                 Y = CG(matvecc, RHS, x_0, max_iters, tol, false);
+%                 % (2) -----------------------------------------------------
+%                 u_RS = C_RAND * (A' * (Y));
+%                 result_RIGHT_in_ITER = result_RIGHT_in_ITER + 1 / N_ITER * u_RS;
 
             end
 
@@ -103,23 +119,24 @@ for n = 1:numel(mesh_array)
     end
 
     %% Plot the results
-    % -------- RIGHT SKETCHING --------
-    figure
-    for iter = 1:length(N_ITER_array)
-        subplot(1, 2, iter)
-
-        for i = 1:length(r_array)
-            plot(s, result_RIGHT(:, i, iter)); hold on
-        end
-
-        plot(s, u2, '-k', 'Linewidth', 1.5)
-        legend(['10% mesh, r = ' num2str(r_array(1))], ['20% mesh, r = ' num2str(r_array(2))], ['50% mesh, r = ' num2str(r_array(3))], 'u_2 solution')
-        title(['Realizations ' num2str(N_ITER_array(iter))])
-        ylim([-5 5])
-    end
-
-    sgtitle(['Ensemble Kalman filter as Right Sketching Methods, Mesh = ' num2str(N)])
-    savefig(['RIGHT_MESH_SIZE_' num2str(N)])
+%     % -------- RIGHT SKETCHING --------
+%     figure
+% 
+%     for iter = 1:length(N_ITER_array)
+%         subplot(1, 2, iter)
+% 
+%         for i = 1:length(r_array)
+%             plot(s, result_RIGHT(:, i, iter)); hold on
+%         end
+% 
+%         plot(s, u2, '-k', 'Linewidth', 1.5)
+%         legend(['10% mesh, r = ' num2str(r_array(1))], ['20% mesh, r = ' num2str(r_array(2))], ['50% mesh, r = ' num2str(r_array(3))], 'u_2 solution')
+%         title(['Realizations ' num2str(N_ITER_array(iter))])
+%         ylim([-5 5])
+%     end
+% 
+%     sgtitle(['Ensemble Kalman filter as Right Sketching Methods, Mesh = ' num2str(N)])
+%     savefig(['RIGHT_MESH_SIZE_' num2str(N)])
 
     % -------- LEFT SKETCHING --------
     figure
@@ -141,23 +158,23 @@ for n = 1:numel(mesh_array)
     savefig(['LEFT_MESH_SIZE_' num2str(N)])
 
     % -------- RAN - MAP --------
-    figure
-
-    for iter = 1:length(N_ITER_array)
-        subplot(1, 2, iter)
-
-        for i = 1:length(r_array)
-            plot(s, result_RAN_MAP(:, i, iter)); hold on
-        end
-
-        plot(s, u1, '--k', 'Linewidth', 1.5)
-        legend(['10% mesh, r = ' num2str(r_array(1))], ['20% mesh, r = ' num2str(r_array(2))], ['50% mesh, r = ' num2str(r_array(3))], 'u_1 solution')
-        title(['Realizations ' num2str(N_ITER_array(iter))])
-        ylim([-2 2])
-    end
-
-    sgtitle(['Randomized MAP Methods, Mesh = ' num2str(N)])
-    savefig(['RAN_MAP_MESH_SIZE_' num2str(N)])
+%     figure
+% 
+%     for iter = 1:length(N_ITER_array)
+%         subplot(1, 2, iter)
+% 
+%         for i = 1:length(r_array)
+%             plot(s, result_RAN_MAP(:, i, iter)); hold on
+%         end
+% 
+%         plot(s, u1, '--k', 'Linewidth', 1.5)
+%         legend(['10% mesh, r = ' num2str(r_array(1))], ['20% mesh, r = ' num2str(r_array(2))], ['50% mesh, r = ' num2str(r_array(3))], 'u_1 solution')
+%         title(['Realizations ' num2str(N_ITER_array(iter))])
+%         ylim([-2 2])
+%     end
+% 
+%     sgtitle(['Randomized MAP Methods, Mesh = ' num2str(N)])
+%     savefig(['RAN_MAP_MESH_SIZE_' num2str(N)])
 
 end
 

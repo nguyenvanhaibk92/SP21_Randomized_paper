@@ -1,0 +1,22 @@
+{
+    "cSpell.enableFiletypes": [
+        "!c",
+        "!csharp",
+        "!css",
+        "!graphql",
+        "!html",
+        "!jade",
+        "!java",
+        "!jsonc",
+        "!php",
+        "!pug",
+        "!rust",
+        "!typescript",
+        "!typescriptreact",
+        "!yaml",
+        "!yml",
+        "fsharp",
+        "matlab",
+        "powershell"
+    ]
+}
