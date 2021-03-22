@@ -1,10 +1,10 @@
 clear all; clc; close all;
-global N P measang
+global N P measang A
 % Noise level
 noise_level = 0.01;
 
 % List of mesh point
-mesh_array = [128];
+mesh_array = [64 128];
 para_proper = [1e5];
 % MESH      64   128
 % par       1e4  1e5
@@ -13,13 +13,15 @@ for n = 1:numel(mesh_array)
     N_ITER_array= [1 5 20];    % number of iterations 1/10/100
     r_array=[ceil(N^2/10) ceil(N^2/5) ceil(N^2/2)]; % 10 / 20 / 50 percent of mesh size
     
-    target = phantom('Modified Shepp-Logan',N);
-    angle0  = -90;
-    measang = angle0 + [0:(N-1)]/N*180;
-    P  = length(radon(target,0));
-    NP = N*P; % size of y_obs
-    NN = N^2; % size of x / original image
-    observation = radon(target,measang);
+%     target = phantom('Modified Shepp-Logan',N);
+[A,m,target]=Data(N);
+angle0  = -90;
+measang = angle0 + [0:(N-1)]/N*180;
+P  = length(radon(target,0));
+NP = N*P; % size of y_obs
+NN = N^2; % size of x / original image
+%     observation = radon(target,measang);
+observation  = reshape(A*target(:),P,N);
     
     % Add noise to the data
     e = randn(size(observation));
@@ -205,58 +207,102 @@ y = SIGMA * x + Ax_y(C_INV * ATy_x(x));
 end
 
 function [y] = Ax_y(x) % operator A*x
-global N measang
-
-y = radon(reshape(x,[N,N]),measang);
-y = y(:); % return column size [P*N,1]
+    global N measang A
+    
+    % y = radon(reshape(x,[N,N]),measang);
+    % y = y(:); % return column size [P*N,1]
+    y = A * x;
 end
-
-
-function x = ATy_x(y)   % operator A'*x
-global N P measang
-
-x = 40.73499999*N/64 * iradon(reshape(y,[P,N]), measang, 'none');
-x = x(2:end-1, 2:end-1);
-x = x(:); % return column size [N*N,1]
+    
+    
+    function x = ATy_x(y)   % operator A'*x
+    global N P measang A
+    
+    % x = 40.73499999*N/64 * iradon(reshape(y,[P,N]), measang, 'none');
+    % x = x(2:end-1, 2:end-1);
+    % x = x(:); % return column size [N*N,1]
+    x = A'*y;
 end
-
-
-function y = CG(matvec, RHS, x_0, max_iters, tol, should_print)
-y      = x_0;
-r      = RHS; % RHS - matvec(0) = RHS since matvec is linear
-r_0    = r;
-norm_r = norm(r_0,2);
-if tol == 0
-    tol = min(0.5, norm_r) * norm(r);
-else
-    tol = tol * norm(r);
-end
-rho    = r'*r;
-i      = 1;
-while i <= max_iters && norm(r,2) > tol
-    if i==1
-        p = r;
+    
+    
+    function y = CG(matvec, RHS, x_0, max_iters, tol, should_print)
+    y      = x_0;
+    r      = RHS; % RHS - matvec(0) = RHS since matvec is linear
+    r_0    = r;
+    norm_r = norm(r_0,2);
+    if tol == 0
+        tol = min(0.5, norm_r) * norm(r);
     else
-        beta  = rho/old_rho;
-        old_p = p;
-        p     = r + beta*p;
+        tol = tol * norm(r);
     end
-    w          = matvec(p);
-    den        = (p'*w);
-    a          = rho/den;
-    y_old      = y;
-    y          = y + a*p;
-    r          = r - a*w;
-    old_rho    = rho;
-    rho        = r'*r;
+    rho    = r'*r;
+    i      = 1;
+    while i <= max_iters && norm(r,2) > tol
+        if i==1
+            p = r;
+        else
+            beta  = rho/old_rho;
+            old_p = p;
+            p     = r + beta*p;
+        end
+        w          = matvec(p);
+        den        = (p'*w);
+        a          = rho/den;
+        y_old      = y;
+        y          = y + a*p;
+        r          = r - a*w;
+        old_rho    = rho;
+        rho        = r'*r;
+        
+        if should_print && mod(i,5) == 0
+            fprintf('Iteration %4d of %4d \n',i,max_iters)
+            fprintf('r norm: %0.4e \n', norm(r,2))
+        elseif mod(i,100)==0
+            fprintf('%4d %4d  %0.6e\n',i, max_iters, norm(r,2))
+        end
+        
+        i = i+1;
+    end
+    end
     
-    %     if should_print && mod(i,5) == 0
-    %         fprintf('Iteration %4d of %4d \n',i,max_iters)
-    %         fprintf('r norm: %0.4e \n', norm(r,2))
-    %     elseif mod(i,100)==0
-    %         fprintf('%4d %4d  %0.6e\n',i, max_iters, norm(r,2))
-    %     end
     
-    i = i+1;
-end
-end
+    
+    function [A,m,target]=Data(N)
+    
+    target = phantom('Modified Shepp-Logan',N);
+    
+    % Choose measurement angles (given in degrees, not radians). 
+    
+    Nang    = N; 
+    angle0  = -90;
+    measang = angle0 + [0:(Nang-1)]/Nang*180;
+    
+    % Initialize measurement matrix of size (M*P) x N^2, where M is the number of
+    % X-ray directions and P is the number of pixels that Matlab's Radon
+    % function gives.
+    P  = length(radon(target,0));
+    M  = length(measang);
+    A = zeros(M*P,N^2);
+    
+    % Construct measurement matrix column by column. The trick is to construct
+    % targets with elements all 0 except for one element that equals 1.
+    for mmm = 1:M
+        for iii = 1:N^2
+            tmpvec                  = zeros(N^2,1);
+            tmpvec(iii)             = 1;
+            A((mmm-1)*P+(1:P),iii) = radon(reshape(tmpvec,N,N),measang(mmm));
+        end
+    end
+    
+    % Test the result
+    Rtemp = radon(target,measang);
+    Rtemp = Rtemp(:);
+    Mtemp = A*target(:);
+    % disp(['If this number is small, then the matrix A is OK: ', num2str(max(max(abs(Mtemp-Rtemp))))]);
+    
+    
+    % Construct ideal (non-noisy) measurement m. This computation commits an
+    % inverse crime.
+    m  = A*target(:);
+    m  = reshape(m,P,length(measang));
+    end
