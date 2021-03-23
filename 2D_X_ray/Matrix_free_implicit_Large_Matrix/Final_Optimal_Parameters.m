@@ -1,11 +1,10 @@
-<<<<<<< HEAD
 clear all; clc; close all;
 global N P measang
 % Noise level
 noise_level = 0.01;
 
 % List of mesh point
-mesh_points = [10];
+mesh_points = [256];
 
 % List of regularization parameters
 parameters = logspace(-4,10,100);
@@ -73,10 +72,84 @@ for nn = 1:length(mesh_points)
     sgtitle(['Mesh size = ' num2str(N)])
 end
 
-% savefig(['Optimal parameter, Mesh size = ' num2str(N) 'x' num2str(N)])
+savefig(['Optimal parameter, Mesh size = ' num2str(N) 'x' num2str(N)])
 
 
+clear all; clc; close all;
+global N P measang
+% Noise level
+noise_level = 0.01;
 
+% List of mesh point
+mesh_points = [256];
+
+% List of regularization parameters
+parameters = logspace(-4,10,100);
+
+% Number of iterations and sampling
+N_ITER = 1;
+r = 1;
+
+for n = 1:length(mesh_points)
+    N = mesh_points(n);
+    target = phantom('Modified Shepp-Logan',N);
+    angle0  = -90;
+    measang = angle0 + [0:(N-1)]/N*180;
+    P  = length(radon(target,0));
+    NP = N*P; % size of y_obs
+    NN = N^2; % size of x / original image
+    observation = radon(target,measang);
+    
+    % Add noise to the data
+    e = randn(size(observation));
+    y_obs  = observation + noise_level*max(max(observation))*e;
+    Data_var = (noise_level)^2; % covariance matrix for data  \Sigma^{-1} = noise_level
+    
+    for i = 1:length(parameters)
+        i
+        Regularization = parameters(i);
+        C = 1/Regularization*eye(1);
+        SIGMA = (Data_var)*eye(1);
+        C_INV = Regularization*eye(1);
+        
+        SIGMA_INV=(1/Data_var)*eye(1);
+        L_SIG_INV=(1/sqrt(Data_var))*ones(NP,1);
+        
+        % Construct right hand side
+        RHS = ATy_x(SIGMA_INV(1,1)*y_obs(:));
+        
+        % Solve the minimization problem using conjugate gradient method.
+        % See Kelley: "Iterative Methods for Optimization", SIAM 1999, page 7.
+        x_0 = zeros(size(RHS));
+        matvecc = @(x) LHS(x,SIGMA_INV,C_INV);
+        max_iters = 500; tol = 1e-5;
+        result_MAP1 = CG(matvecc, RHS, x_0, max_iters, tol, false);
+        eta_MAP1(i,1) = norm(y_obs(:) - Ax_y(result_MAP1));
+        rho_Map1(i,1) = norm(result_MAP1);
+        Error_Map1(i,1) = norm(target(:)-result_MAP1)/norm(target(:))*100;
+        
+    end
+end
+%% Parameters L-Curve and Errors
+
+for nn = 1:length(mesh_points)
+    figure
+    subplot(2,1,1)
+    semilogx(eta_MAP1(:,nn),rho_Map1(:,nn),'--pr'); hold on
+    legend('MAP1')
+    xlabel('Residual norm ||b-Ax||')
+    ylabel('norm of solution ||x||')
+    title('Optimal parameter')
+    subplot(2,1,2)
+    semilogx(parameters,Error_Map1(:,nn),'--pr'); hold on
+    legend('MAP1')
+    xlabel('Regularization \alpha')
+    ylabel('Error % ||x_{true}-x_{rec}|| / ||x_{true}||')
+    title('Error versus \alpha')
+    sgtitle(['Mesh size = ' num2str(N)])
+end
+
+savefig(['Optimal parameter, Mesh size = ' num2str(N) 'x' num2str(N)])
 
 
 
