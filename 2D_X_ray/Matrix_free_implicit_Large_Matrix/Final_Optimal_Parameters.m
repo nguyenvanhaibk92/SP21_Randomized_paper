@@ -75,13 +75,14 @@ end
 savefig(['Optimal parameter, Mesh size = ' num2str(N) 'x' num2str(N)])
 
 
+
 clear all; clc; close all;
 global N P measang
 % Noise level
 noise_level = 0.01;
 
 % List of mesh point
-mesh_points = [256];
+mesh_points = [512];
 
 % List of regularization parameters
 parameters = logspace(-4,10,100);
