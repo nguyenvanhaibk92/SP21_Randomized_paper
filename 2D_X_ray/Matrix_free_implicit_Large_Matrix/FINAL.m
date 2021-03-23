@@ -4,8 +4,8 @@ global N P measang
 noise_level = 0.01;
 
 % List of mesh point
-mesh_array = [256 512];
-para_proper = [5e5 1e6];
+mesh_array = [64];
+para_proper = [1e4];
 % MESH      64   128
 % par       1e4  1e5
 for n = 1:numel(mesh_array)
@@ -42,6 +42,8 @@ for n = 1:numel(mesh_array)
         for i = 1:numel(r_array)
             r = r_array(i);
             
+            [N N_ITER r]
+
             result_RIGHT_in_ITER=zeros(NN,1);
             result_LEFT_in_ITER=zeros(NN,1);
             result_RAN_MAP_in_ITER=zeros(NN,1);
@@ -92,7 +94,6 @@ for n = 1:numel(mesh_array)
                 % (2) ---------------------
                 u_RS = EPSILON*(EPSILON' * ATy_x(Y));
                 result_RIGHT_in_ITER = result_RIGHT_in_ITER + 1/N_ITER * u_RS;
-                xxx
             end
             result_LEFT(:,i,iter) = result_LEFT_in_ITER;
             result_RAN_MAP(:,i,iter) = result_RAN_MAP_in_ITER;
