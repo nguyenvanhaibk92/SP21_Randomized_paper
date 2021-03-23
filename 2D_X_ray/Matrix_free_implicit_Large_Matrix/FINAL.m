@@ -4,10 +4,10 @@ global N P measang
 noise_level = 0.01;
 
 % List of mesh point
-mesh_array = [64];
-para_proper = [1e4];
-% MESH      64   128
-% par       1e4  1e5
+mesh_array = [128    256    512];
+para_proper = [1e5    5e5    3e6];
+% MESH      64   128    256    512 
+% par       1e4  1e5    5e5    3e6
 for n = 1:numel(mesh_array)
     N = mesh_array(n); Regularization = para_proper(n);
     N_ITER_array= [1 5 20];    % number of iterations 1/10/100
