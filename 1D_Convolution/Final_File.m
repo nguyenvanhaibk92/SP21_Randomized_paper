@@ -2,7 +2,7 @@ clear all; clc; close all;
 
 rand('state', 20)
 
-mesh_array = [50000];
+mesh_array = [10000];
 
 for n = 1:numel(mesh_array)
     N = mesh_array(n);
