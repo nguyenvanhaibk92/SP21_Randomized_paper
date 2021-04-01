@@ -133,7 +133,7 @@ observation  = reshape(A*target(:),P,N);
         subplot(numel(N_ITER_array),numel(r_array)+1,(numel(r_array)+1)*(iter-1)+1)
         imagesc(reshape(u_1,[N,N]))
         axis square; colormap gray; axis off;
-        text(-20,50,['Realizations = ' num2str(N_ITER_array(iter))])
+        text(-20,110,['Realizations = ' num2str(N_ITER_array(iter))])
         title('u_1 solution')
         
         for i = 1:length(r_array)
@@ -152,7 +152,7 @@ observation  = reshape(A*target(:),P,N);
         subplot(numel(N_ITER_array),(numel(r_array)+1),(numel(r_array)+1)*(iter-1)+1)
         imagesc(reshape(u_1,[N,N]))
         axis square; colormap gray; axis off;
-        text(-20,50,['Realizations = ' num2str(N_ITER_array(iter))])
+        text(-20,110,['Realizations = ' num2str(N_ITER_array(iter))])
         title('u_1 solution')
         for i = 1:length(r_array)
             subplot(numel(N_ITER_array),(numel(r_array)+1),(numel(r_array)+1)*(iter-1)+i+1)
@@ -171,7 +171,7 @@ observation  = reshape(A*target(:),P,N);
         subplot(numel(N_ITER_array),(numel(r_array)+1),(numel(r_array)+1)*(iter-1)+1)
         imagesc(reshape(u_2,[N,N]))
         axis square; colormap gray; axis off;
-        text(-20,50,['Realizations = ' num2str(N_ITER_array(iter))],'Rotation',90)
+        text(-20,110,['Realizations = ' num2str(N_ITER_array(iter))],'Rotation',90)
         title('u_2 solution')
         for i = 1:length(r_array)
             subplot(numel(N_ITER_array),(numel(r_array)+1),(numel(r_array)+1)*(iter-1)+i+1)
