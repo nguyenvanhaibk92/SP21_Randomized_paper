@@ -2,7 +2,7 @@ clear all; clc; close all;
 
 rand('state', 20)
 
-mesh_array = [10000];
+mesh_array = [500];
 
 for n = 1:numel(mesh_array)
     N = mesh_array(n);
@@ -50,7 +50,7 @@ for n = 1:numel(mesh_array)
                 RHS = A' * (SIGMA_INV_rand * y_obs(:)); % Construct right hand side
                 x_0 = zeros(size(RHS));
                 matvecc = @(x) A' * (SIGMA_INV_rand * (A * x)) + C_INV * x;
-                max_iters = 500; tol = 1e-5;
+                max_iters = 10; tol = 1e-5;
                 result_LEFT_in_ITER = result_LEFT_in_ITER + 1 / N_ITER * ...
                     CG(matvecc, RHS, x_0, max_iters, tol, false);
 
@@ -59,7 +59,7 @@ for n = 1:numel(mesh_array)
                 RHS = A' * (SIGMA_INV(1, 1) * (y_obs(:) + mean(sig_rand, 2))) + C_INV(1, 1) * mean(EPSILON, 2);
                 x_0 = zeros(size(RHS));
                 matvecc = @(x) A' * (SIGMA_INV(1, 1) * (A * x)) + C_INV(1, 1) * x;
-                max_iters = 500; tol = 1e-5;
+%                 max_iters = 500; tol = 1e-5;
                 result_RAN_MAP_in_ITER = result_RAN_MAP_in_ITER + 1 / N_ITER * ...
                     CG(matvecc, RHS, x_0, max_iters, tol, false);
 
@@ -71,7 +71,7 @@ for n = 1:numel(mesh_array)
                 RHS = y_obs(:);
                 x_0 = zeros(size(RHS));
                 matvecc = @(x) SIGMA(1, 1) * x + A * (C_RAND * (A' * x));
-                max_iters = 500; tol = 1e-5;
+%                 max_iters = 500; tol = 1e-5;
                 Y = CG(matvecc, RHS, x_0, max_iters, tol, false);
                 % (2) -----------------------------------------------------
                 u_RS = C_RAND * (A' * (Y));
@@ -90,13 +90,13 @@ for n = 1:numel(mesh_array)
         RHS = A' * (SIGMA_INV(1, 1) * y_obs(:)); % Construct right hand side
         x_0 = zeros(size(RHS));
         matvecc = @(x) A' * (SIGMA_INV(1, 1) * (A * x)) + C_INV(1, 1) * x;
-        max_iters = 500; tol = 1e-5;
+%         max_iters = 500; tol = 1e-5;
         u1 = CG(matvecc, RHS, x_0, max_iters, tol, false);
 
         % u2 = (C*A')*(inv(SIGMA + A*C*A') * y_obs);
         RHS = y_obs(:); x_0 = zeros(size(RHS));
         matvecc = @(x) SIGMA(1, 1) * x + A * (C(1, 1) * (A' * x));
-        max_iters = 500; tol = 1e-5;
+%         max_iters = 500; tol = 1e-5;
         Y = CG(matvecc, RHS, x_0, max_iters, tol, false);
         % (2) -----------------------------------------------------
         u2 = C(1, 1) * (A' * (Y));
