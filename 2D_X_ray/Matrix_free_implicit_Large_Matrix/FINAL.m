@@ -48,6 +48,8 @@ observation  = reshape(A*target(:),P,N);
             result_LEFT_in_ITER=zeros(NN,1);
             result_RAN_MAP_in_ITER=zeros(NN,1);
             
+	    [n N_ITER r]
+
             for iter_loop = 1:N_ITER
                 
                 %% =================== LEFT SKETCHING =====================
