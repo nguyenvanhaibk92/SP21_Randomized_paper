@@ -4,8 +4,8 @@ mesh_array = [2023];
 
 for n = 1:numel(mesh_array)
     N = mesh_array(n);
-    N_ITER_array = [1];% 10 100]; % number of iterations 1/10/100
-    r_array = ceil([N/10]);% N/5 N/2]); % 10 / 20 / 50 percent of mesh size
+    N_ITER_array = [1 10 100]; % number of iterations 1/10/100
+    r_array = ceil([N/10 N/5 N/2]); % 10 / 20 / 50 percent of mesh size
     
     % --------- Initial parameters for the N mesh size -----------------------
     noise_level = 0.01;
