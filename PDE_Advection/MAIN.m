@@ -110,7 +110,7 @@ for n = 1:numel(mesh_array)
 
 end
 
-save ('Result', 'result_LEFT','result_RIGHT', 'result_RAN_MAP', 'Error_LEFT', 'Error_Right', 'Error_RAN_MAP');
+save ('Result','u1', 'u2',  'result_LEFT','result_RIGHT', 'result_RAN_MAP', 'Error_LEFT', 'Error_Right', 'Error_RAN_MAP');
 
 
 
