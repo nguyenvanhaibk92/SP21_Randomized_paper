@@ -1,6 +1,6 @@
 clear all; clc; close all;
 rand('state', 20)
-mesh_array = [100];
+mesh_array = [1000];
 
 for problem = 1:7
     N = mesh_array(1);
@@ -59,30 +59,49 @@ for problem = 1:7
     end
     
     % -------------------------------------------------------------------------
-    C = 1 / Regularization * eye(SIZE_A(2));
-    C_INV = Regularization * eye(SIZE_A(2));
-    SIGMA = (Data_var) * eye(SIZE_A(1));
+    %C = 1 / Regularization * eye(SIZE_A(2));
+    %C_INV = Regularization * eye(SIZE_A(2));
+
+    % smoothness prior is assembled on the inverse of prior covariance
+    %C_INV = Regularization * eye(SIZE_A(2)); %
+	C_INV = smoothness_prior(SIZE_A(2), Regularization*100);
+    %C_INV = C_INV + Regularization * eye(SIZE_A(2)); %
+
+    % We need the matrix square root of the prior covariance to sample from N(0, C)
+	% smoothness prior is symmetric, so U = V;
+    [U, S, V] = svd(C_INV);
+    C_INV_half = U * sqrt(S) * V'; %'
+
+    C_half = U * diag(sqrt(1./diag(S))) * V'; %'
+    C = C_half * C_half;
+
+	SIGMA = (Data_var) * eye(SIZE_A(1));
     SIGMA_INV = 1 / Data_var * eye(SIZE_A(1));
     
-    max_iters = 500; tol = 1e-5;  % Solve the minimization problem using conjugate gradient method.
+    max_iters = 500; tol = 1e-4;  % Solve the minimization problem using conjugate gradient method.
     
     % u1 = inv(A' * SIGMA_INV * A + C_INV) * ((A * SIGMA_INV * y_obs(:)));
     RHS = A' * (SIGMA_INV(1, 1) * y_obs(:)); % Construct right hand side
     x_0 = zeros(size(RHS));
-    matvecc = @(x) A' * (SIGMA_INV(1, 1) * (A * x)) + C_INV(1, 1) * x;
+    matvecc = @(x) A' * (SIGMA_INV(1, 1) * (A * x)) + C_INV * x;
     u1 = CG(matvecc, RHS, x_0, max_iters, tol, false);
     
-    % u2 = (C*A')*(inv(SIGMA + A*C*A') * y_obs);
-    RHS = y_obs(:); x_0 = zeros(size(RHS));
-    matvecc = @(x) SIGMA(1, 1) * x + A * (C(1, 1) * (A' * x));
-    Y = CG(matvecc, RHS, x_0, max_iters, tol, false);
-    u2 = C(1, 1) * (A' * (Y));
-    
-    % ---------------------------------------------------------------------
-    r_array = [ 0.2*N 0.5*N 50*N]; % 10 / 20 / 50 percent of mesh size
-%     r_array = [50*N]; % 10 / 20 / 50 percent of mesh size
+    u2 = (C*A')*(inv(SIGMA + A*C*A') * y_obs);
+    %RHS = y_obs(:); x_0 = zeros(size(RHS));
+    %matvecc = @(x) SIGMA(1, 1) * x + A * (C * (A' * x));
+    %tol = 1e-4;
+    %Y = CG(matvecc, RHS, x_0, max_iters, tol, false);
+    %u2 = C * (A' * Y);
+%figure
+%plot(s, u2, s, true_solution, s, u1)
+%legend('u2', 'true')
+%plot(s, diag(S))
+%continue;    
+    % ---------------------------------------------------------------------'
+    r_array = [ 0.2*N 0.5*N 1*N]; % 20 / 50 / 5000 percent of mesh size
+    %r_array = [50*N]; % 10 / 20 / 50 percent of mesh size
     M = [N];
-    realization = [1 10];
+    realization = [1];
     
     result_rMAP = zeros(N,numel(realization));
     result_LEFT = zeros(N,numel(r_array),numel(realization));
@@ -90,13 +109,10 @@ for problem = 1:7
     result_RIGHT = zeros(N,numel(r_array),numel(realization));
     result_EnKF = zeros(N,numel(r_array),numel(realization));
     
-    
+	% colors for plotting
     color(1,:) = [0 0.4470 0.7410];
     color(2,:) = [0.6350 0.0780 0.1840];
-    color(3,:) = [0.4660 0.6740 0.1880];
-    
-    
-    
+    color(3,:) = [0.4660 0.6740 0.1880]; 
     
         for realize = 1:numel(realization)
             n_realize = realization(realize);
@@ -107,13 +123,19 @@ for problem = 1:7
                     [problem n_realize r]
                     r 
                     % Using rank one product
-                    EPSILON = normrnd(0, sqrt(1 / Regularization), [SIZE_A(2), r]); % draw (0,C)
-                    delta_rand = normrnd(0, sqrt(Regularization), [SIZE_A(2), r]);  % draw (0,C^{-1})
+                    %EPSILON = normrnd(0, sqrt(1 / Regularization), [SIZE_A(2), r]); % draw (0,C)
+                    %delta_rand = normrnd(0, sqrt(Regularization), [SIZE_A(2), r]);  % draw (0,C^{-1})
+                    %LAMBDA = normrnd(0, sqrt(1 / Data_var), [size(y_obs(:), 1), r]);% draw (0,Sigma^{-1})
+                    %sig_rand = normrnd(0, sqrt(Data_var), [size(y_obs(:), 1), r]);  % draw (0,Sigma)
+					
+					EPSILON = C_half * normrnd(0, 1, [SIZE_A(2), r]); % draw (0,C)
+                    delta_rand = C_INV_half * normrnd(0, 1, [SIZE_A(2), r]);  % draw (0,C^{-1})
                     LAMBDA = normrnd(0, sqrt(1 / Data_var), [size(y_obs(:), 1), r]);% draw (0,Sigma^{-1})
                     sig_rand = normrnd(0, sqrt(Data_var), [size(y_obs(:), 1), r]);  % draw (0,Sigma)
                     
-                    % RIGHT
+                    % MC estimate of prior covariance
                     C_RAND = 1 / r * EPSILON * EPSILON';
+
                     % (1) using CG for solvong Y = (SIGMA + A C A')^{-1} d
                     % => (2) Then u_RS  = C A' Y
                     % (1) -----------------------------------------------------
@@ -122,16 +144,26 @@ for problem = 1:7
                     matvecc = @(x) SIGMA(1, 1) * x + A * (C_RAND * (A' * x));
                     Y = CG(matvecc, RHS, x_0, max_iters, tol, false);
                     % (2) -----------------------------------------------------
-                    u_RS = C_RAND * (A' * (Y));
+                    u_RS = C_RAND * (A' * Y);
                     result_RIGHT(:,i,realize) = result_RIGHT(:,i,realize) + 1/n_realize * u_RS;
-    
-    
+                    
+                    % EnKF'
+					ensemble_size = r;
+					Enfk_ensemble = zeros(ensemble_size, SIZE_A(2));
+					parfor i=1:r					 
+					   RHS_local = y_obs + sig_rand(:, i) - A * delta_rand(:, i); 
+					   matvecc_local = @(x) SIGMA(1, 1) * x + A * (C_RAND * (A' * x));%'
+					   y_local = CG(matvecc_local, RHS_local, x_0, max_iters, tol, false);
+					   EnKF_ensemble(i, :) = delta_rand(:, i) + C_RAND * (A' * y_local);
+			 		end
+					result_EnKF(:,i,realize) = mean(EnKF_ensemble, 1)';
+
                     % EnKF
                     re = realize;
                     result_RAM_in_ITER = zeros(N, 1);
 %                     for j = 1:M(re)
 %                         % EnKF right sketching
-%                         delta = normrnd(0, sqrt(1 / Regularization), [SIZE_A(2), 1]);
+%                         %delta = normrnd(0, sqrt(1 / Regularization), [SIZE_A(2), 1]);
 %                         sigma = normrnd(0, sqrt(Data_var), [size(y_obs(:), 1), 1]);
 %                         % (1) -----------------------------------------------------
 %                         RHS = (y_obs(:) + sigma - A*delta);
@@ -142,7 +174,7 @@ for problem = 1:7
 %                         u_RS = delta + C_RAND * (A' * (Y));
 %                         result_RAM_in_ITER = result_RAM_in_ITER + 1/M(re) * u_RS;
 %                     end
-                    result_EnKF(:,i,realize) = result_EnKF(:,i,realize) + 1/n_realize * result_RAM_in_ITER;
+%					  result_EnKF(:,i,realize) = result_EnKF(:,i,realize) + 1/n_realize * result_RAM_in_ITER;
                 end
             end
         end
@@ -160,7 +192,7 @@ for problem = 1:7
             end
             ylim([-factor*max(abs(true_solution)) factor*max(abs(true_solution))])
             set(findall(gcf,'-property','FontSize'),'FontSize',12,'FontName', 'Times New Roman')
-            saveas(gcf,['1D_' name '_RS_realization_' num2str(n_realize)],'epsc')
+            saveas(gcf,['1D_' name '_RS_realization_' num2str(n_realize) '_smooth'],'epsc')
         end
     
         % EnKF
@@ -176,7 +208,7 @@ for problem = 1:7
             end
             ylim([-factor*max(abs(true_solution)) factor*max(abs(true_solution))])
             set(findall(gcf,'-property','FontSize'),'FontSize',12,'FontName', 'Times New Roman')
-            saveas(gcf,['1D_' name '_EnKF_realization_' num2str(n_realize)],'epsc')
+            saveas(gcf,['1D_' name '_EnKF_realization_' num2str(n_realize) '_smooth'],'epsc')
         end
     
     
