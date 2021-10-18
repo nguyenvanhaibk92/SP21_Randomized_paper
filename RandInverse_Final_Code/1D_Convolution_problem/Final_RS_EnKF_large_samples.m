@@ -1,5 +1,5 @@
 clear all; clc; close all;
-rand('state', 20)
+%rand('state', 20)
 mesh_array = [1000];
 
 for problem = 1:7
@@ -63,9 +63,10 @@ for problem = 1:7
     %C_INV = Regularization * eye(SIZE_A(2));
 
     % smoothness prior is assembled on the inverse of prior covariance
-    %C_INV = Regularization * eye(SIZE_A(2)); %
-	C_INV = smoothness_prior(SIZE_A(2), Regularization*100);
-    %C_INV = C_INV + Regularization * eye(SIZE_A(2)); %
+    C_INV = Regularization * eye(SIZE_A(2)); %
+	%C_INV = smoothness_prior(SIZE_A(2), Regularization*100);
+    %C_INV = C_INV + Regularization/10 * eye(SIZE_A(2)); %
+    prior_name = 'identity';
 
     % We need the matrix square root of the prior covariance to sample from N(0, C)
 	% smoothness prior is symmetric, so U = V;
@@ -151,10 +152,10 @@ for problem = 1:7
 					ensemble_size = r;
 					Enfk_ensemble = zeros(ensemble_size, SIZE_A(2));
 					parfor i=1:r					 
-					   RHS_local = y_obs + sig_rand(:, i) - A * delta_rand(:, i); 
+					   RHS_local = y_obs + sig_rand(:, i) - A * EPSILON(:, i); 
 					   matvecc_local = @(x) SIGMA(1, 1) * x + A * (C_RAND * (A' * x));%'
 					   y_local = CG(matvecc_local, RHS_local, x_0, max_iters, tol, false);
-					   EnKF_ensemble(i, :) = delta_rand(:, i) + C_RAND * (A' * y_local);
+					   EnKF_ensemble(i, :) = EPSILON(:, i) + C_RAND * (A' * y_local);
 			 		end
 					result_EnKF(:,i,realize) = mean(EnKF_ensemble, 1)';
 
@@ -183,7 +184,7 @@ for problem = 1:7
         for realize = 1:numel(realization)
             n_realize = realization(realize);
             figure
-            plot(s, u2, '--k', 'Linewidth', 1,'DisplayName','u_2 solution'); hold on
+            plot(s, u2, '--k', 'Linewidth', 2,'DisplayName','u_2 solution'); hold on
             for i = 1:length(r_array)
                 plot(s, result_RIGHT(:, i,realize),'color',color(i,:), 'Linewidth', 1,'DisplayName',['r = ' num2str(r_array(i))]);
                 error((realize-1)*3+i,4,problem) = norm(result_RIGHT(:, i,realize) - u2)/norm(u2);
@@ -192,14 +193,14 @@ for problem = 1:7
             end
             ylim([-factor*max(abs(true_solution)) factor*max(abs(true_solution))])
             set(findall(gcf,'-property','FontSize'),'FontSize',12,'FontName', 'Times New Roman')
-            saveas(gcf,['1D_' name '_RS_realization_' num2str(n_realize) '_smooth'],'epsc')
+            saveas(gcf,['figures/1D_' name '_RS_realization_' num2str(n_realize) '_' prior_name],'epsc')
         end
     
         % EnKF
         for realize = 1:numel(realization)
             n_realize = realization(realize);
             figure
-            plot(s, u2, '--k', 'Linewidth', 1,'DisplayName','u_2 solution'); hold on
+            plot(s, u2, '--k', 'Linewidth', 2,'DisplayName','u_2 solution'); hold on
             for i = 1:length(r_array)
                 plot(s, result_EnKF(:, i,realize),'color',color(i,:), 'Linewidth', 1,'DisplayName',['r = ' num2str(r_array(i))]);
                 error((realize-1)*3+i,5,problem) = norm(result_EnKF(:, i,realize) - u2)/norm(u2);
@@ -208,7 +209,7 @@ for problem = 1:7
             end
             ylim([-factor*max(abs(true_solution)) factor*max(abs(true_solution))])
             set(findall(gcf,'-property','FontSize'),'FontSize',12,'FontName', 'Times New Roman')
-            saveas(gcf,['1D_' name '_EnKF_realization_' num2str(n_realize) '_smooth'],'epsc')
+            saveas(gcf,['figures/1D_' name '_EnKF_realization_' num2str(n_realize) '_' prior_name],'epsc')
         end
     
     
